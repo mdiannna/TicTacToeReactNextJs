@@ -1,103 +1,139 @@
-import Image from "next/image";
+"use client";
+
+import React, { useMemo, useState } from "react";
+
+type Player = "X" | "O";
+type SquareValue = Player | null;
+
+function calculateWinner(squares: SquareValue[]): Player | null {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+  for (const [a, b, c] of lines) {
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
+  }
+  return null;
+}
+
+function useTicTacToe() {
+  const [squares, setSquares] = useState<SquareValue[]>(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState<boolean>(true);
+
+  const winner = useMemo(() => calculateWinner(squares), [squares]);
+  const isDraw = useMemo(
+    () => squares.every((v) => v !== null) && !winner,
+    [squares, winner]
+  );
+
+  function handlePlay(index: number) {
+    if (squares[index] || winner) return;
+    const nextSquares = squares.slice();
+    nextSquares[index] = xIsNext ? "X" : "O";
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  }
+
+  function resetGame() {
+    setSquares(Array(9).fill(null));
+    setXIsNext(true);
+  }
+
+  return { squares, xIsNext, winner, isDraw, handlePlay, resetGame };
+}
+
+function SquareButton(props: {
+  value: SquareValue;
+  onClick: () => void;
+  isWinning: boolean;
+}) {
+  const { value, onClick, isWinning } = props;
+  return (
+    <button
+      aria-label={value ? `Square ${value}` : "Empty square"}
+      onClick={onClick}
+      className={
+        "h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 text-3xl sm:text-4xl md:text-5xl font-bold flex items-center justify-center border border-black/20 dark:border-white/20 transition-colors " +
+        (isWinning
+          ? "bg-emerald-100 dark:bg-emerald-900/40"
+          : "hover:bg-black/[.03] dark:hover:bg-white/[.06]")
+      }
+    >
+      {value}
+    </button>
+  );
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { squares, xIsNext, winner, isDraw, handlePlay, resetGame } =
+    useTicTacToe();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const winningLine = useMemo(() => {
+    const lines = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
+    for (const [a, b, c] of lines) {
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return [a, b, c] as const;
+      }
+    }
+    return [] as const;
+  }, [squares]);
+
+  const statusLabel = winner
+    ? `Winner: ${winner}`
+    : isDraw
+    ? "Draw!"
+    : `Next player: ${xIsNext ? "X" : "O"}`;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="flex flex-col items-center gap-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold">Tic-Tac-Toe</h1>
+        <div
+          role="status"
+          aria-live="polite"
+          className="text-base sm:text-lg"
+        >
+          {statusLabel}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <div
+          className="grid grid-cols-3 grid-rows-3 gap-0 bg-black/20 dark:bg-white/20"
+          style={{ lineHeight: 0 }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {squares.map((value, idx) => (
+            <SquareButton
+              key={idx}
+              value={value}
+              onClick={() => handlePlay(idx)}
+              isWinning={winningLine.includes(idx as never)}
+            />)
+          )}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={resetGame}
+            className="rounded-md px-4 py-2 text-sm font-medium border border-black/20 dark:border-white/20 hover:bg-black/[.03] dark:hover:bg-white/[.06]"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
